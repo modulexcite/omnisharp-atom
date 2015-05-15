@@ -35,6 +35,7 @@
         "./lib/omni-sharp-server/omni.ts",
         "./lib/omni-sharp-server/view-model.ts",
         "./lib/omnisharp-atom/dependency-checker.ts",
+        "./lib/omnisharp-atom/features/buffer-updater.ts",
         "./lib/omnisharp-atom/features/code-action.ts",
         "./lib/omnisharp-atom/features/code-check.ts",
         "./lib/omnisharp-atom/features/code-format.ts",
