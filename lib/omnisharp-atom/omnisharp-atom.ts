@@ -118,7 +118,7 @@ class OmniSharpAtom {
         var featureFiles = _.filter(
             fs.readdirSync(featureDir),
             (file: string) => !fs.statSync(featureDir + "/" + file).isDirectory() && /\.js$/.test(file)
-            );
+        );
 
         var features = _.map(featureFiles, (feature: string) => new Feature(this, feature));
         return features;
