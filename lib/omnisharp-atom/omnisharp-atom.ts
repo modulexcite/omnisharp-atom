@@ -246,6 +246,12 @@ class OmniSharpAtom {
             description: 'Outputs detailed server calls in console.log',
             type: 'boolean',
             default: false
+        },
+        enhancedHighlighting: {
+            title: 'Enhanced Highlighting',
+            description: "Enables server based highlighting, which includes support for string interpolation, class names and more.",
+            type: 'boolean',
+            default: true
         }
     }
 
