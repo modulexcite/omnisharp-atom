@@ -21,7 +21,7 @@ class CodeCheckOutputPaneView extends spacePenViews.View {
                 style: "cursor: pointer"
             }, () => {
                 return this.div({
-                    'class': 'codecheck {{LogLevel}}'
+                    'class': '{{LogLevel}}'
                 }, () => {
                     this.pre({"class": "text-highlight"}, "{{Text}}");
                     this.pre({"class": "inline-block"}, "{{FileName | filename}}({{Line}},{{Column}})");
