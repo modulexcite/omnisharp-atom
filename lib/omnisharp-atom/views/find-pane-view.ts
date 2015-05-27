@@ -1,98 +1,84 @@
-import spacePenViews = require('atom-space-pen-views')
-var $ = spacePenViews.jQuery;
-var Convert = require('ansi-to-html')
-import Vue = require('vue')
 import _ = require('lodash')
 import Omni = require('../../omni-sharp-server/omni')
+import React = require('react');
+import {ReactClientComponent} from "./react-client-component";
 
-// Internal: A tool-panel view for find usages/implementations
-class FindPaneView extends spacePenViews.View {
-    private vm: { usages: any[] };
+class FindPaneWindow extends ReactClientComponent<{}, { usages?: OmniSharp.Models.QuickFix[] }> {
+    public displayName = 'FindPaneWindow';
 
-    public static content() {
-        return this.div({
-            "class": 'error-output-pane',
-            outlet: 'atomSharpFindPane'
-        }, () => {
-                this.ul({
-                    "class": 'background-message centered',
-                    'v-class': 'hide: isLoadingOrReady'
-                }, () => {
-                        return this.li(() => {
-                            this.span('Omnisharp server is turned off');
-                            return this.kbd({
-                                "class": 'key-binding text-highlight'
-                            }, '⌃⌥O');
-                        });
-                    });
-                this.ul({
-                    "class": 'background-message centered',
-                    'v-class': 'hide: isNotLoading'
-                }, () => {
-                        return this.li(() => {
-                            return this.progress({
-                                "class": 'inline-block'
-                            });
-                        });
-                    });
-                return this.table({
-                    "class": 'error-table',
-                    'v-class': 'hide: isNotReady'
-                }, () => {
-                        this.thead(() => {
-                            this.th('line');
-                            this.th('column');
-                            this.th('message');
-                            return this.th('filename');
-                        });
-                        return this.tbody(() => {
-                            var data;
-                            return this.tr({
-                                'v-repeat': 'usages',
-                                'v-on': 'click: gotoUsage'
-                            }, data = '{{$index}}', () => {
-                                    this.td('{{Line}}');
-                                    this.td('{{Column}}');
-                                    this.td('{{Text}}');
-                                    return this.td('{{FileName}}');
-                                });
-                        });
-                    });
-            });
+    constructor(props?: {}, context?: any) {
+        super({ trackClientChanges: true }, props, context);
+        this.state = { usages: [] };
     }
 
-    public initialize() {
-
-        var viewModel = new Vue({
-            el: this[0],
-            data: _.extend(Omni.vm, {
-                usages: []
-            }),
-            methods: {
-                gotoUsage: (arg) => {
-                    var targetVM;
-                    targetVM = arg.targetVM;
-                    Omni.navigateTo(targetVM.$data);
-                }
-            }
-        });
-        this.vm = <any>viewModel;
+    public componentDidMount() {
+        super.componentDidMount();
 
         Omni.registerConfiguration(client => {
-            client.observeFindusages.subscribe((data) => {
-                this.vm.usages = data.response.QuickFixes;
-            });
+            this.disposable.add(client.observeFindusages.subscribe((data) => {
+                this.setState({
+                    usages: data.response.QuickFixes
+                });
+            }));
 
-            client.observeFindimplementations.subscribe((data) => {
+            this.disposable.add(client.observeFindimplementations.subscribe((data) => {
                 if (data.response.QuickFixes.length > 1) {
-                    this.vm.usages = data.response.QuickFixes;
+                    this.setState({
+                        usages: data.response.QuickFixes
+                    });
                 }
-            });
+            }));
         });
     }
 
-    public destroy() {
-        this.detach();
+    private gotoUsage(quickfix: OmniSharp.Models.QuickFix) {
+        Omni.navigateTo(quickfix);
+    }
+
+    public render() {
+        if (!this.client || this.client.isOff) {
+            return React.DOM.ul({
+                className: 'background-message centered'
+            }, React.DOM.li({},
+                React.DOM.span({}, 'Omnisharp server is turned off'),
+                React.DOM.kbd({
+                    className: 'key-binding text-highlight'
+                }, '⌃⌥O')
+                ));
+        }
+
+        if (this.client && this.client.isConnecting) {
+            return React.DOM.ul({
+                className: 'background-message centered'
+            }, React.DOM.li({}, React.DOM.progress({
+                className: 'inline-block'
+            })));
+        }
+
+        return React.DOM.table({
+            className: 'error-table',
+        }, React.DOM.thead({},
+            React.DOM.th({}, 'line'),
+            React.DOM.th({}, 'column'),
+            React.DOM.th({}, 'column'),
+            React.DOM.th({}, 'filename')
+            ), React.DOM.tbody({},
+                ..._.map(this.state.usages, (usage: OmniSharp.Models.QuickFix) =>
+                    React.DOM.tr({
+                        onClick: (e) => this.gotoUsage(usage)
+                    },
+                        React.DOM.td({}, usage.Line),
+                        React.DOM.td({}, usage.Column),
+                        React.DOM.td({}, usage.Text),
+                        React.DOM.td({}, usage.FileName)
+                        ))
+                ));
     }
 }
-export = FindPaneView;
+
+export = function() {
+    var element = document.createElement('div');
+    element.className = 'error-output-pane';
+    React.render(React.createElement(FindPaneWindow, null), element);
+    return element;
+}
