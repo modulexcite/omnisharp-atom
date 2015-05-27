@@ -1,6 +1,5 @@
 import _ = require('lodash')
 import Omni = require('../../omni-sharp-server/omni')
-import ClientManager = require('../../omni-sharp-server/client-manager');
 import React = require('react');
 import {ReactClientComponent} from "./react-client-component";
 
@@ -15,21 +14,19 @@ class FindPaneWindow extends ReactClientComponent<{}, { usages?: OmniSharp.Model
     public componentDidMount() {
         super.componentDidMount();
 
-        ClientManager.registerConfiguration(client => {
-            this.disposable.add(client.observeFindusages.subscribe((data) => {
+        this.disposable.add(Omni.listen.observeFindusages.subscribe((data) => {
+            this.setState({
+                usages: data.response.QuickFixes
+            });
+        }));
+
+        this.disposable.add(Omni.listen.observeFindimplementations.subscribe((data) => {
+            if (data.response.QuickFixes.length > 1) {
                 this.setState({
                     usages: data.response.QuickFixes
                 });
-            }));
-
-            this.disposable.add(client.observeFindimplementations.subscribe((data) => {
-                if (data.response.QuickFixes.length > 1) {
-                    this.setState({
-                        usages: data.response.QuickFixes
-                    });
-                }
-            }));
-        });
+            }
+        }));
     }
 
     private gotoUsage(quickfix: OmniSharp.Models.QuickFix) {
