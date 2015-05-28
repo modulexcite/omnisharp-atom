@@ -22,6 +22,7 @@
 /// <reference path="node_modules/rx/ts/rx.all.d.ts" />
 /// <reference path="node_modules/omnisharp-client/omnisharp-client.d.ts" />
 /// <reference path="typings/react/react.d.ts" />
+/// <reference path="typings/knockout/knockout.d.ts" />
 
 declare module chai {
     interface Assert {

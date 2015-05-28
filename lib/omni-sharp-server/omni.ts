@@ -3,8 +3,102 @@ import manager = require("./client-manager");
 import Client = require("./client");
 //import {DriverState} from "omnisharp-client";
 import _ = require('lodash');
+import ko = require('knockout');
+
+interface IGlobalState {
+    projects: KnockoutObservableArray<IOmniSharpProject>;
+    activeProject: KnockoutObservable<IOmniSharpProject>;
+}
+interface IOmniSharpProject {
+    atomProjectPath: string; //won't change.
+    //for now we just pass the array as a whole to react but we could change this to
+    //observableerrors when we receive update over stdio and need to dedup
+    errorsAndWarnings: KnockoutObservable<OmniSharp.Models.DiagnosticLocation[]>;
+    client: Client;
+}
+
+class OmniSharp implements IGlobalState {
+
+    public projects: KnockoutObservableArray<IOmniSharpProject>;
+    public activeProject: KnockoutObservable<IOmniSharpProject>;
+
+    constructor()
+    {
+        this.projects = ko.observableArray<IOmniSharpProject>();
+        this.activeProject = ko.observable<IOmniSharpProject>()
+    }
+
+    public tryClientCall<T>(call: (client: Client) => Rx.Observable<T>) : Rx.Observable<T> {
+        var project = this.activeProject();
+        if (!project || !project.client || !project.client.isOn)
+            return Rx.Observable.empty<T>();
+
+        return call(project.client);
+    }
+
+    public setActiveProject(atomProjectPath: string) {
+        var project = _.first(_.filter(this.projects(), p => p.atomProjectPath == atomProjectPath));
+        if (!project) return;
+        this.activeProject(project);
+    }
+
+    public registerProject(atomProjectPath: string) : void
+    {
+        //noop if we already registered this atomProject
+        if (_.any(this.projects(), p => p.atomProjectPath == atomProjectPath)) return;
+        this.projects.push(new OmniSharpProject(atomProjectPath));
+        this.setActiveProject(atomProjectPath);
+    }
+
+    public removeProject(atomProjectPath: string) {
+        var project = _.first(_.filter(this.projects(), p => p.atomProjectPath == atomProjectPath));
+        if (!project) return;
+
+        //makeSure we disconnect before removing
+        if (project.client) project.client.disconnect()
+        this.projects.remove(project);
+        if (this.activeProject().atomProjectPath == atomProjectPath)
+        {
+            //either null or the last added project ?
+        }
+    }
+}
+
+class OmniSharpProject implements IOmniSharpProject {
+    public atomProjectPath: string;
+    public errorsAndWarnings: KnockoutObservable<OmniSharp.Models.DiagnosticLocation[]>;
+    public client: Client;
+    public sourceProjects: KnockoutObservableArray<string>;
+
+    constructor(atomProjectPath: string)
+    {
+        this.atomProjectPath = atomProjectPath;
+        this.errorsAndWarnings = ko.observable<OmniSharp.Models.DiagnosticLocation[]>();
+        this.sourceProjects = ko.observableArray(this.findOmniSharpProjectsInAtomProject());
+        //here we can validate if we find runnable solutions/projects/folders?
+
+        var projectPath = _.first(this.sourceProjects());
+
+        //TODO figure out what these two paths are :)
+        this.client = new Client(projectPath, {
+            projectPath: projectPath
+        });
+
+        //setup client subscriptions for this project we like to share, (e.g)
+    }
+
+    public findOmniSharpProjectsInAtomProject() : string[]
+    {
+        //imagine this works :)
+        return [""];
+    }
+}
+
 
 class Omni {
+
+    public static VM = new OmniSharp();
+
     public static toggle() {
         if (manager.connected) {
             manager.disconnect();
@@ -63,7 +157,7 @@ class Omni {
         // Ensure that the underying promise is connected
         //   (if we don't subscribe to the reuslt of the request, which is not a requirement).
         var sub = result.subscribe(() => sub.dispose());
-        
+
         return result;
     }
 

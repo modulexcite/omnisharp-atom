@@ -37,6 +37,9 @@
     },
     "react/react.d.ts": {
       "commit": "c2b70ba731a485968fa3e0561a32652f59787015"
+    },
+    "knockout/knockout.d.ts": {
+      "commit": "70737c2a2496f7a13c4da63eb00081cad94d19f1"
     }
   }
 }

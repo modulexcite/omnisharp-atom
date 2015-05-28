@@ -27,6 +27,13 @@ class GoToImplementation {
                 this.atomSharper.outputView.selectPane("find");
             }
         });
+
+        //TODO can we refactor client so that client.makeRequest() is no longer needed?
+        Omni.VM.tryClientCall(client=>client.findimplementations(client.makeRequest()))
+            .subscribe((data) => {
+                //do stuff
+            })
+
     }
 
     public deactivate() {
