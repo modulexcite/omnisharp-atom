@@ -36,11 +36,8 @@ class CodeCheck {
         _.debounce(() => {
             Omni.request(editor, client => {
                 var request = <OmniSharp.Models.FormatRangeRequest>client.makeRequest(editor);
-                return client.updatebufferPromise(request)
-                    .then(() => {
-                        request.FileName = null;
-                        Omni.request(editor, client => client.codecheck(request));
-                    });
+                return client.codecheck(request);
+            }).subscribe(() => {
             });
         }, 500)();
     }

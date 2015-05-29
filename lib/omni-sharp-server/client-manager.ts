@@ -162,6 +162,17 @@ class ClientManager {
             return Observable.empty<Client>();
         }
 
+        var p = (<any>editor).omniProject;
+        // Not sure if we should just add properties onto editors...
+        // but it works...
+        if (p && (client = Observable.just(this._clients[p]))) {
+            if (this._temporaryClients[p]) {
+                this.setupDisposableForTemporaryClient(p, editor);
+            }
+
+            return client;
+        }
+
         var grammarName = editor.getGrammar().name;
         var valid = false;
         if (grammarName === 'C#' || grammarName === 'C# Script File')
@@ -177,20 +188,10 @@ class ClientManager {
             return Observable.empty<Client>();
 
 
-        var p = (<any>editor).omniProject;
-        // Not sure if we should just add properties onto editors...
-        // but it works...
-        if (p && (client = Observable.just(this._clients[p]))) {
-            if (this._temporaryClients[p]) {
-                this.setupDisposableForTemporaryClient(p, editor);
-            }
-
-            return client;
-        }
-
         var location = editor.getPath();
         var [intersect, clientInstance] = this.getClientForUnderlyingPath(location, grammarName);
         p = (<any>editor).omniProject = intersect;
+        (<any>editor).__omniClient__ = client;
         if (this._temporaryClients[p]) {
             this.setupDisposableForTemporaryClient(p, editor);
         }
@@ -202,6 +203,7 @@ class ClientManager {
             .map(z => {
                 var [p, client, temporary] = z;
                 (<any>editor).omniProject = p;
+                (<any>editor).__omniClient__ = client;
                 if (temporary) {
                     this.setupDisposableForTemporaryClient(p, editor);
                 }
